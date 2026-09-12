@@ -1,0 +1,1699 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tresor</title>
+<style>
+  :root{
+    --bg: #EDE8DE;
+    --paper: #FBF9F4;
+    --ink: #2A241C;
+    --ink-soft: #7A7263;
+    --line: #DAD2C0;
+    --shadow: 0 2px 10px rgba(42,36,28,0.08);
+    --radius: 10px;
+    --c-ausweise: #A8412C;
+    --c-wohnung: #B8752E;
+    --c-mobilfunk: #3A7B8C;
+    --c-bankomat: #2E6B4F;
+    --c-personen: #4A5A8C;
+  }
+  *{box-sizing:border-box;}
+  html, body{
+    width:100%;
+    max-width:100%;
+    overflow-x:hidden;
+    margin:0;
+    padding:0;
+  }
+  body{
+    font-family: 'Iowan Old Style','Georgia',serif;
+    background: var(--bg);
+    color: var(--ink);
+    min-height:100vh;
+  }
+  .ui{ font-family: -apple-system, 'Segoe UI', Roboto, sans-serif; }
+
+  /* ---------- LOGIN ---------- */
+  #login{
+    min-height:100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+    gap:22px;
+    padding:24px;
+  }
+  #login .lock{
+    width:52px;height:52px;border-radius:50%;
+    background: var(--ink);
+    display:flex;align-items:center;justify-content:center;
+    font-size:22px;color:var(--paper);
+  }
+  #login h1{
+    font-size:22px;font-weight:600;margin:0;letter-spacing:.2px;
+  }
+  #login p{ margin:0; color:var(--ink-soft); font-size:14px; }
+  .login-form{ display:flex; flex-direction:column; gap:12px; width:min(300px,80vw); }
+  .login-form input{
+    height:46px; padding:0 14px;
+    font-size:15px;
+    border:1.5px solid var(--line);
+    border-radius:8px;
+    background: var(--paper);
+    color: var(--ink);
+    font-family: -apple-system, sans-serif;
+  }
+  .login-form input:focus{ outline:none; border-color: var(--ink); }
+  .login-form button{
+    height:46px; border:none; border-radius:8px;
+    background: var(--ink); color: var(--paper);
+    font-family: -apple-system, sans-serif;
+    font-size:15px; font-weight:600; cursor:pointer;
+  }
+  .login-form button:disabled{ opacity:.6; }
+  #loginError{ color:#A8412C; font-size:13px; height:16px; font-family:-apple-system,sans-serif; }
+
+  /* ---------- APP SHELL ---------- */
+  #app{ display:none; min-height:100vh; }
+  header.topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:14px 20px 0 20px;
+    position:sticky; top:0; z-index:20;
+    background: var(--bg);
+  }
+  header.topbar h1{
+    font-size:19px; margin:0; font-weight:600;
+    display:flex; align-items:center; gap:8px;
+  }
+  header.topbar .lockbtn{
+    font-family:-apple-system,sans-serif;
+    font-size:12px; color:var(--ink-soft);
+    background:none;border:1px solid var(--line);
+    padding:6px 12px; border-radius:20px; cursor:pointer;
+  }
+
+  .search-bar{
+    position:sticky; top:44px; z-index:19;
+    background: var(--bg);
+    display:flex; align-items:center; gap:8px;
+    padding:10px 16px;
+  }
+  .search-icon{ font-size:14px; flex-shrink:0; }
+  .search-bar input{
+    flex:1; min-width:0;
+    height:38px; padding:0 12px;
+    border:1.5px solid var(--line); border-radius:20px;
+    background: var(--paper); color: var(--ink);
+    font-size:14px;
+    font-family: -apple-system, sans-serif;
+  }
+  .search-bar input:focus{ outline:none; border-color: var(--ink); }
+  .search-clear{
+    flex-shrink:0;
+    border:none; background:none; cursor:pointer;
+    color: var(--ink-soft); font-size:16px;
+    width:28px; height:28px;
+  }
+
+  .search-results{
+    margin: 0 16px 16px 16px;
+    background: var(--paper);
+    border-radius:10px;
+    box-shadow: var(--shadow);
+    overflow:hidden;
+  }
+  .search-result-item{
+    display:flex; align-items:center; gap:10px;
+    padding:12px 14px;
+    border-bottom:1px solid var(--line);
+    cursor:pointer;
+  }
+  .search-result-item:last-child{ border-bottom:none; }
+  .search-result-item:active{ background: var(--bg); }
+  .search-result-icon{ font-size:18px; flex-shrink:0; }
+  .search-result-text{ min-width:0; flex:1; }
+  .search-result-title{ font-size:13.5px; font-weight:700; color: var(--ink); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .search-result-meta{ font-size:11.5px; color: var(--ink-soft); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; margin-top:2px; }
+  .search-result-match{ font-size:11.5px; color: var(--ink-soft); }
+  .search-result-match b{ color: var(--ink); }
+  .search-empty{ padding:20px 16px; text-align:center; color: var(--ink-soft); font-size:13.5px; }
+
+  /* expiring soon section */
+  .expiring-section{
+    margin-top:24px;
+    padding-top:16px;
+    border-top:1.5px dashed var(--line);
+    font-family:-apple-system,sans-serif;
+  }
+  .expiring-title{
+    font-size:12.5px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.5px;
+    color:#A8412C;
+    margin-bottom:10px;
+  }
+  .expiring-item{
+    display:flex; justify-content:space-between; align-items:baseline; gap:10px;
+    padding:8px 0;
+    color:#B0473A;
+    font-size:13.5px; font-weight:600;
+    border-bottom:1px solid var(--line);
+  }
+  .expiring-item:last-child{ border-bottom:none; }
+  .expiring-item .expiring-meta{
+    font-size:12px; font-weight:600; color:#B0473A; opacity:.8;
+    white-space:nowrap; flex-shrink:0;
+  }
+  .expiring-item.urgent{
+    color:#A8412C;
+    font-size:16px; font-weight:800;
+  }
+  .expiring-item.urgent .expiring-meta{ color:#A8412C; font-size:13px; }
+
+  /* folder tabs */
+  .tabs{
+    display:grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap:6px;
+    padding: 18px 16px 0 16px;
+  }
+  .tab{
+    font-family:-apple-system,sans-serif;
+    font-size:11.5px; font-weight:700;
+    line-height:1.2;
+    padding:10px 4px 11px 4px;
+    border-radius: 10px 10px 4px 4px;
+    cursor:pointer;
+    color: var(--paper);
+    opacity:.55;
+    min-width:0;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px;
+    transition: opacity .15s ease, transform .15s ease;
+  }
+  .tab .tab-icon{ font-size:17px; }
+  .tab .tab-label{
+    overflow:hidden; text-overflow:ellipsis;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical;
+    text-align:center;
+    max-width:100%;
+  }
+  .tab:hover{ opacity:.8; }
+  .tab.active{ opacity:1; transform: translateY(-2px); }
+
+  .folder-body{
+    background: var(--paper);
+    margin: 0 16px 24px 16px;
+    border-radius: 0 10px 10px 10px;
+    box-shadow: var(--shadow);
+    min-height: 60vh;
+    padding: 22px;
+  }
+
+  /* subcategory pills */
+  .subcats{
+    display:flex; gap:8px; flex-wrap:wrap;
+    margin-bottom: 22px;
+    font-family:-apple-system,sans-serif;
+  }
+  .subcat-pill{
+    font-size:13px; font-weight:600;
+    padding:7px 15px; border-radius:20px;
+    border:1.5px solid var(--line);
+    background: var(--bg);
+    cursor:pointer; color: var(--ink-soft);
+  }
+  .subcat-pill.active{
+    color:#fff; border-color: transparent;
+  }
+
+  .section-title{
+    font-family:-apple-system,sans-serif;
+    font-size:12.5px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.6px;
+    color:var(--ink-soft);
+    margin: 26px 0 10px 0;
+  }
+  .section-title:first-child{ margin-top:0; }
+
+  /* file group cards */
+  .filegroups{ display:grid; grid-template-columns:1fr; gap:12px; }
+  @media(min-width:640px){ .filegroups{ grid-template-columns:1fr 1fr; } }
+  .filegroup{
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    padding:14px 14px 12px 14px;
+    background:#fff;
+    font-family:-apple-system,sans-serif;
+  }
+  .filegroup h4{
+    margin:0 0 10px 0; font-size:13.5px; font-weight:700;
+  }
+  .file-chip{
+    display:flex; align-items:center; gap:8px;
+    padding:7px 10px; margin-bottom:6px;
+    border-radius:7px;
+    font-size:13px; font-weight:600;
+    background: color-mix(in srgb, var(--accent) 12%, white);
+    color: var(--accent);
+  }
+  .file-chip a{ color:inherit; text-decoration:none; flex:1; word-break:break-all; }
+  .file-chip button{
+    border:none; background:none; cursor:pointer;
+    color: var(--ink-soft); font-size:15px; line-height:1;
+    padding:2px 4px;
+  }
+  .file-chip button:hover{ color:#A8412C; }
+  .addfile-btn{
+    font-size:12.5px; font-weight:700;
+    border:1.5px dashed var(--line);
+    background:none; border-radius:7px;
+    padding:7px 10px; width:100%; cursor:pointer;
+    color: var(--ink-soft); margin-top:2px;
+  }
+  .addfile-btn:hover{ border-color: var(--accent); color:var(--accent); }
+
+  /* text fields */
+  .textfields{ display:grid; grid-template-columns:1fr; gap:14px; max-width:420px; }
+  @media(min-width:640px){ .textfields{ grid-template-columns:1fr 1fr; } }
+  .tf{ display:flex; flex-direction:column; gap:5px; font-family:-apple-system,sans-serif; }
+  .tf label{ font-size:12px; font-weight:600; color:var(--ink-soft); }
+  .tf input{
+    border:1.5px solid var(--line); border-radius:7px;
+    padding:9px 11px; font-size:14.5px; font-weight:700;
+    background:#fff;
+  }
+  .tf input:focus{ outline:none; border-color: var(--accent); }
+  .tf .saved-hint{ font-size:11px; color:var(--accent); height:13px; opacity:0; transition:opacity .3s; }
+  .tf .saved-hint.show{ opacity:1; }
+
+  .add-custom-group{
+    font-family:-apple-system,sans-serif;
+    margin-top:16px; font-size:13px; font-weight:700;
+    background:none; border:1.5px solid var(--line); border-radius:8px;
+    padding:9px 14px; cursor:pointer; color:var(--ink-soft);
+  }
+  .add-custom-group:hover{ color:var(--accent); border-color:var(--accent); }
+
+  /* id document cards (Ausweise/Bankomatkarten) */
+  .iddoc-grid{ display:grid; grid-template-columns: minmax(0,1fr); gap:6px; margin-bottom:14px; }
+  @media(min-width:640px){ .iddoc-grid{ grid-template-columns: minmax(0,1fr) minmax(0,1fr); } }
+  .iddoc-card{
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    background:#fff;
+    overflow:hidden;
+    font-family:-apple-system,sans-serif;
+  }
+  .iddoc-card-header{
+    display:flex; flex-direction:column; gap:5px;
+    padding:9px 9px;
+    cursor:pointer;
+  }
+  .iddoc-card-toprow{
+    display:flex; align-items:flex-start; gap:6px;
+  }
+  .iddoc-card-icon{ font-size:14px; flex-shrink:0; margin-top:1px; }
+  .iddoc-card-title{
+    flex:1; min-width:0;
+    font-size:13.5px; font-weight:700;
+    white-space:normal; word-break:break-word;
+    line-height:1.25;
+  }
+  .iddoc-card-bottomrow{
+    padding-left:20px;
+    display:flex; align-items:center; gap:7px; flex-wrap:wrap;
+  }
+  .iddoc-edit-btn{
+    flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:16px;
+    color: var(--ink-soft);
+    background:none;
+    border:1.5px solid var(--line); border-radius:8px;
+    min-width:34px; min-height:34px;
+    cursor:pointer;
+  }
+  .iddoc-edit-btn:active{ opacity:.6; }
+  .iddoc-photo-btn{
+    flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:11.5px; font-weight:700;
+    text-decoration:none;
+    color: var(--ink-soft);
+    border:1.5px solid var(--line); border-radius:14px;
+    padding:6px 10px;
+    min-height:34px;
+    white-space:nowrap;
+  }
+  .iddoc-photo-btn:active{ opacity:.7; }
+  .iddoc-del-btn{
+    flex-shrink:0;
+    border:none; background:none; cursor:pointer;
+    color: var(--ink-soft); font-size:18px; line-height:1;
+    padding:8px 8px;
+    min-width:36px; min-height:36px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .iddoc-del-btn:hover{ color:#A8412C; }
+  .iddoc-move-btn{
+    flex-shrink:0;
+    border:none; background:none; cursor:pointer;
+    color: var(--ink-soft); font-size:17px; line-height:1;
+    padding:8px 7px;
+    min-width:36px; min-height:36px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .iddoc-move-btn:disabled{ opacity:.25; cursor:default; }
+  .iddoc-move-btn:not(:disabled):hover{ color: var(--ink); }
+  .iddoc-card-toprow{ gap:2px; }
+
+  .iddoc-drag-handle{
+    flex-shrink:0;
+    font-size:18px; color: var(--ink-soft);
+    padding:8px 6px;
+    touch-action:none;
+    cursor:grab;
+    line-height:1;
+  }
+  .iddoc-card.dragging{
+    position:relative;
+    z-index:10;
+    opacity:.9;
+    box-shadow: 0 8px 18px rgba(42,36,28,0.18);
+    transition:none;
+  }
+  .iddoc-chev{ flex-shrink:0; font-size:10px; opacity:.55; margin-top:3px; }
+  .iddoc-fields{
+    display:grid; grid-template-columns: minmax(0,1fr); gap:10px;
+    padding:2px 12px 14px 12px;
+    border-top:1px solid var(--line);
+    padding-top:12px;
+  }
+  .multifile-box{ margin-bottom:4px; }
+  .iddoc-fields .tf label{ font-size:11px; }
+  .iddoc-fields .tf input{
+    border:1.5px solid var(--line); border-radius:7px;
+    padding:7px 9px; font-size:13.5px; font-weight:700;
+    background:var(--bg);
+  }
+  .iddoc-fields .tf input:focus{ outline:none; border-color: var(--accent); }
+
+  .tf-copy-row{ display:flex; gap:6px; align-items:stretch; }
+  .tf-copy-row input{ flex:1; min-width:0; }
+  .tf-copy-row-note{ align-items:flex-start; }
+  .tf-copy-row-note textarea{
+    flex:1; min-width:0; resize:vertical;
+    border:1.5px solid var(--line); border-radius:7px;
+    padding:9px 11px; font-size:14px; font-weight:600;
+    background:#fff; font-family:-apple-system,sans-serif;
+    line-height:1.4;
+  }
+  .tf-copy-row-note textarea:focus{ outline:none; border-color: var(--accent); }
+  .copy-btn{
+    flex-shrink:0;
+    width:34px;
+    border:1.5px solid var(--line); border-radius:7px;
+    background: var(--bg); color: var(--accent);
+    font-size:15px; cursor:pointer;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .copy-btn:hover{ border-color: var(--accent); }
+  .copy-btn:active{ transform: scale(0.94); }
+
+  /* bank cards (Bankomatkarten) */
+  .card-grid{ display:flex; flex-direction:column; gap:12px; margin-bottom:14px; }
+  .card-item{
+    border:1.5px solid var(--line);
+    border-radius:10px;
+    background:#fff;
+    overflow:hidden;
+    font-family:-apple-system,sans-serif;
+  }
+  .card-item-header{
+    display:flex; align-items:center; gap:12px;
+    padding:10px 12px;
+    cursor:pointer;
+  }
+  .card-thumb-link{ flex-shrink:0; display:block; }
+  .card-thumb{
+    width:72px; height:46px;
+    object-fit:cover;
+    border-radius:6px;
+    display:block;
+    background: var(--bg);
+    border:1px solid var(--line);
+  }
+  .card-item-title{
+    flex:1; min-width:0;
+    display:flex; align-items:center; justify-content:space-between; gap:8px;
+    font-size:14px; font-weight:700;
+    color: var(--accent);
+  }
+  .card-item-title span:first-child{
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .card-item-title .chev{ font-size:11px; opacity:.6; flex-shrink:0; }
+  .card-del-btn{
+    flex-shrink:0;
+    border:none; background:none; cursor:pointer;
+    color: var(--ink-soft); font-size:16px; line-height:1;
+    padding:4px 6px;
+  }
+  .card-del-btn:hover{ color:#A8412C; }
+  .card-fields{
+    padding:4px 14px 16px 14px;
+    display:grid; grid-template-columns:1fr; gap:12px;
+    border-top:1px solid var(--line);
+    margin-top:2px; padding-top:14px;
+  }
+  @media(min-width:480px){ .card-fields{ grid-template-columns:1fr 1fr; } }
+
+  .hint{
+    font-family:-apple-system,sans-serif; font-size:12.5px; color:var(--ink-soft);
+    margin-top:2px; margin-bottom:18px;
+  }
+
+  #toast{
+    position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(20px);
+    background: var(--ink); color:#fff; padding:10px 18px; border-radius:20px;
+    font-family:-apple-system,sans-serif; font-size:13px; font-weight:600;
+    opacity:0; pointer-events:none; transition: all .25s ease;
+    z-index:100;
+  }
+  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- ================= LOGIN ================= -->
+<div id="login" class="ui">
+  <div class="lock">🔒</div>
+  <h1>Tresor</h1>
+  <p>Anmelden, um fortzufahren</p>
+  <div class="login-form">
+    <input type="email" id="loginEmail" placeholder="E-Mail-Adresse" autocomplete="username" />
+    <input type="password" id="loginPassword" placeholder="Passwort" autocomplete="current-password" />
+    <button id="loginBtn">Anmelden</button>
+  </div>
+  <div id="loginError"></div>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="app">
+  <header class="topbar ui">
+    <h1>🔒 Tresor</h1>
+    <button class="lockbtn" id="lockBtn">Sperren</button>
+  </header>
+
+  <div class="search-bar ui">
+    <span class="search-icon">🔍</span>
+    <input type="text" id="searchInput" placeholder="Suchen (Nummer, Datum, Name, Notiz…)" />
+    <button id="searchClearBtn" class="search-clear" style="display:none;">✕</button>
+  </div>
+  <div id="searchResults" class="search-results ui" style="display:none;"></div>
+
+  <div class="tabs ui" id="tabs"></div>
+  <div class="folder-body" id="folderBody"></div>
+</div>
+
+<div id="toast" class="ui"></div>
+
+<script type="module">
+/* =========================================================
+   1) FIREBASE-KONFIGURATION — HIER AUSFÜLLEN
+   Firebase Console -> Projekteinstellungen -> "Allgemein" ->
+   "Meine Apps" -> SDK-Setup und Konfiguration -> Werte kopieren.
+   ========================================================= */
+const firebaseConfig = {
+  apiKey: "AIzaSyBZUgoJIh2flCdR4lNU8q4VxeB4G-St2Y0",
+  authDomain: "schulwegend.firebaseapp.com",
+  projectId: "schulwegend",
+  storageBucket: "schulwegend.firebasestorage.app",
+  messagingSenderId: "662513011948",
+  appId: "1:662513011948:web:9d53610f616e9f882769c9"
+};
+
+/* =========================================================
+   2) KATEGORIEN-KONFIGURATION
+   Neue Karteikarten später einfach hier als weiteres Objekt
+   im "categories"-Array ergänzen — der Rest der App baut sich
+   automatisch danach auf.
+   ========================================================= */
+const CONFIG = {
+  categories: [
+    {
+      id: "ausweise",
+      label: "Ausweise",
+      icon: "🪪",
+      color: "var(--c-ausweise)",
+      subcategories: ["Firat", "Ebru", "Eflin", "Diğer Kişiler"],
+      type: "docEntries",
+      storageKey: "idDocuments",
+      addLabel: "+ Ausweis hinzufügen",
+      promptLabel: "Anzeigename für diesen Ausweis (z. B. \"Reisepass\"):",
+      fields: [
+        { key: "ausweisnummer", label: "Ausweisnummer" },
+        { key: "ablaufdatum", label: "Ablaufdatum" },
+        { key: "notiz", label: "Notiz" }
+      ]
+    },
+    {
+      id: "bankomatkarten",
+      label: "Bankkarten",
+      icon: "💳",
+      color: "var(--c-bankomat)",
+      subcategories: ["Österreich", "Türkei", "Diğer Kişiler"],
+      type: "docEntries",
+      storageKey: "cards",
+      addLabel: "+ Karte hinzufügen",
+      promptLabel: "Anzeigename für diese Karte (z. B. \"Visa Österreich\"):",
+      fields: [
+        { key: "inhaber", label: "Name auf der Karte" },
+        { key: "kartennummer", label: "Kartennummer" },
+        { key: "ablaufdatum", label: "Ablaufdatum" },
+        { key: "cvc", label: "Sicherheitscode (CVC)" },
+        { key: "iban", label: "IBAN" },
+        { key: "bic", label: "BIC" },
+        { key: "notiz", label: "Notiz" }
+      ]
+    },
+    {
+      id: "personendokumente",
+      label: "Dokumente von Personen",
+      icon: "📄",
+      color: "var(--c-personen)",
+      subcategories: ["Firat", "Ebru", "Eflin", "Irmak", "Diğer Kişiler"],
+      type: "docEntries",
+      storageKey: "documents",
+      multiFile: true,
+      addLabel: "+ Dokument hinzufügen",
+      promptLabel: "Anzeigename für dieses Dokument (z. B. \"Meldezettel\"):",
+      fields: [
+        { key: "notiz", label: "Notiz" }
+      ]
+    },
+    {
+      id: "wohnung",
+      label: "Wohnung",
+      icon: "🏠",
+      color: "var(--c-wohnung)",
+      subcategories: ["Allgemein"],
+      type: "docEntries",
+      storageKey: "documents",
+      multiFile: true,
+      addLabel: "+ Dokument hinzufügen",
+      promptLabel: "Anzeigename für dieses Dokument (z. B. \"Mietvertrag\"):",
+      fields: [
+        { key: "notiz", label: "Notiz" }
+      ]
+    },
+    {
+      id: "mobilfunk_internet",
+      label: "Mobilfunk/Internet",
+      icon: "📶",
+      color: "var(--c-mobilfunk)",
+      type: "docEntries",
+      storageKey: "documents",
+      multiFile: true,
+      addLabel: "+ Dokument hinzufügen",
+      promptLabel: "Anzeigename für dieses Dokument:",
+      groups: [
+        {
+          id: "sim",
+          label: "SIM Karten",
+          subcategories: ["Ausland", "Inland"],
+          fields: [
+            { key: "telefonnummer", label: "Telefonnummer" },
+            { key: "pin1", label: "Pin1" },
+            { key: "pin2", label: "Pin2" },
+            { key: "puk1", label: "Puk1" },
+            { key: "puk2", label: "Puk2" },
+            { key: "betreiber", label: "Betreiber" },
+            { key: "simnr", label: "Sim Nr." },
+            { key: "seriennr", label: "Serien Nr." },
+            { key: "notiz", label: "Notiz" }
+          ]
+        },
+        {
+          id: "internet_heim",
+          label: "Internet Heim",
+          subcategories: null,
+          fields: [
+            { key: "wifiname", label: "Wifi Name" },
+            { key: "wifipassword", label: "Wifi Password" },
+            { key: "settingspage", label: "Settings Page" },
+            { key: "settingspassword", label: "Settings Password" },
+            { key: "seriennummer", label: "Seriennummer" },
+            { key: "cmmac", label: "CM MAC" },
+            { key: "mtamac", label: "MTA MAC" },
+            { key: "gatewaymac", label: "GATEWAY MAC" },
+            { key: "notiz", label: "Notiz" }
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+/* =========================================================
+   FIREBASE INIT
+   ========================================================= */
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {
+  getFirestore, doc, getDoc, setDoc, updateDoc, getDocs, collection
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+import {
+  getStorage, ref, uploadBytes, getDownloadURL, deleteObject
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-storage.js";
+import {
+  getAuth, signInWithEmailAndPassword, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
+const fbApp = initializeApp(firebaseConfig);
+const db = getFirestore(fbApp);
+const storage = getStorage(fbApp, "gs://tresor-storage");
+const auth = getAuth(fbApp);
+
+/* =========================================================
+   LOGIN (Firebase Authentication)
+   ========================================================= */
+const loginBtn = document.getElementById('loginBtn');
+const emailInput = document.getElementById('loginEmail');
+const passwordInput = document.getElementById('loginPassword');
+const errorEl = document.getElementById('loginError');
+
+async function doLogin(){
+  errorEl.textContent = '';
+  loginBtn.disabled = true;
+  loginBtn.textContent = 'Anmelden…';
+  try {
+    await signInWithEmailAndPassword(auth, emailInput.value.trim(), passwordInput.value);
+  } catch(e){
+    errorEl.textContent = 'E-Mail oder Passwort falsch.';
+  }
+  loginBtn.disabled = false;
+  loginBtn.textContent = 'Anmelden';
+}
+
+loginBtn.addEventListener('click', doLogin);
+passwordInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+
+document.getElementById('lockBtn').addEventListener('click', () => {
+  signOut(auth);
+});
+
+onAuthStateChanged(auth, (user) => {
+  if (user){
+    document.getElementById('login').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    boot();
+  } else {
+    document.getElementById('login').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+  }
+});
+
+/* =========================================================
+   APP LOGIC
+   ========================================================= */
+let activeCategoryId = CONFIG.categories[0].id;
+let activeSubcatByCategory = {};
+let activeGroupByCategory = {};
+let activeGroupSubcatByCategory = {};
+CONFIG.categories.forEach(c => {
+  if (c.groups){
+    activeGroupByCategory[c.id] = c.groups[0].id;
+    const g0 = c.groups[0];
+    activeGroupSubcatByCategory[c.id] = g0.subcategories ? g0.subcategories[0] : null;
+  } else {
+    activeSubcatByCategory[c.id] = c.subcategories[0];
+  }
+});
+
+function boot(){
+  renderTabs();
+  renderFolderBody();
+}
+
+/* =========================================================
+   SUCHE (durchsucht alle Registerkarten gleichzeitig)
+   ========================================================= */
+const searchInput = document.getElementById('searchInput');
+const searchClearBtn = document.getElementById('searchClearBtn');
+const searchResultsEl = document.getElementById('searchResults');
+const tabsEl2 = document.getElementById('tabs');
+const folderBodyEl = document.getElementById('folderBody');
+
+let searchDebounce;
+searchInput.addEventListener('input', () => {
+  searchClearBtn.style.display = searchInput.value ? 'block' : 'none';
+  clearTimeout(searchDebounce);
+  if (!searchInput.value.trim()){
+    exitSearch();
+    return;
+  }
+  searchDebounce = setTimeout(() => runSearch(searchInput.value.trim()), 350);
+});
+
+searchClearBtn.addEventListener('click', () => {
+  searchInput.value = '';
+  searchClearBtn.style.display = 'none';
+  exitSearch();
+});
+
+function exitSearch(){
+  searchResultsEl.style.display = 'none';
+  searchResultsEl.innerHTML = '';
+  tabsEl2.style.display = '';
+  folderBodyEl.style.display = '';
+}
+
+function subcatFromKey(cat, key){
+  if (cat.groups){
+    return key.replace('__', ' · ').replace(/_/g, ' ');
+  }
+  if (!cat.subcategories) return key;
+  return cat.subcategories.find(s => sanitizeKey(s) === key) || key;
+}
+
+async function runSearch(termRaw){
+  const term = termRaw.toLowerCase();
+  tabsEl2.style.display = 'none';
+  folderBodyEl.style.display = 'none';
+  searchResultsEl.style.display = 'block';
+  searchResultsEl.innerHTML = `<div class="search-empty">Suche läuft…</div>`;
+
+  let results = [];
+  try {
+    const snap = await getDocs(collection(db, 'tresor_data'));
+    snap.forEach(docSnap => {
+      const data = docSnap.data();
+      const sepIdx = docSnap.id.indexOf('__');
+      const catId = docSnap.id.slice(0, sepIdx);
+      const subKey = docSnap.id.slice(sepIdx + 2);
+      const cat = CONFIG.categories.find(c => c.id === catId);
+      if (!cat) return;
+      const subcatLabel = subcatFromKey(cat, subKey);
+
+      if (cat.type === "docEntries"){
+        const list = data[cat.storageKey] || [];
+        const fieldsList = cat.groups
+          ? Object.values(Object.fromEntries(cat.groups.flatMap(g => g.fields).map(f => [f.key, f])))
+          : cat.fields;
+        list.forEach(entryItem => {
+          const fieldsToCheck = [
+            { label: 'Bezeichnung', value: entryItem.name },
+            ...fieldsList.map(f => ({ label: f.label, value: entryItem[f.key] }))
+          ];
+          const match = fieldsToCheck.find(f => (f.value || '').toString().toLowerCase().includes(term));
+          if (match){
+            results.push({
+              catId: cat.id, catLabel: cat.label, icon: cat.icon, color: accentColorStr(cat),
+              subcatLabel, title: entryItem.name || cat.label,
+              matchLabel: match.label, matchValue: match.value
+            });
+          }
+        });
+      } else {
+        // fileGroups-based categories (z. B. Dokumente von Personen)
+        const allGroupNames = [...(cat.fileGroups || []), ...(data.customGroups || [])];
+        allGroupNames.forEach(groupName => {
+          const key = sanitizeKey(groupName);
+          const files = data.fileGroups?.[key] || [];
+          files.forEach(f => {
+            if ((f.name || '').toLowerCase().includes(term) || groupName.toLowerCase().includes(term)){
+              results.push({
+                catId: cat.id, catLabel: cat.label, icon: cat.icon, color: accentColorStr(cat),
+                subcatLabel, title: f.name, matchLabel: groupName, matchValue: f.name
+              });
+            }
+          });
+        });
+        (cat.textFields || []).forEach(tf => {
+          const val = data.textFields?.[tf.key];
+          if ((val || '').toString().toLowerCase().includes(term)){
+            results.push({
+              catId: cat.id, catLabel: cat.label, icon: cat.icon, color: accentColorStr(cat),
+              subcatLabel, title: subcatLabel, matchLabel: tf.label, matchValue: val
+            });
+          }
+        });
+      }
+    });
+  } catch(e){
+    console.error(e);
+    searchResultsEl.innerHTML = `<div class="search-empty">Suche fehlgeschlagen.</div>`;
+    return;
+  }
+
+  renderSearchResults(results, termRaw);
+}
+
+function accentColorStr(cat){
+  if (cat.color.startsWith('var(')){
+    return getComputedStyle(document.documentElement).getPropertyValue(cat.color.slice(4,-1)).trim();
+  }
+  return cat.color;
+}
+
+function renderSearchResults(results, term){
+  if (!results.length){
+    searchResultsEl.innerHTML = `<div class="search-empty">Keine Treffer für "${escapeHtml(term)}"</div>`;
+    return;
+  }
+  searchResultsEl.innerHTML = '';
+  results.forEach(r => {
+    const item = document.createElement('div');
+    item.className = 'search-result-item';
+    item.innerHTML = `
+      <span class="search-result-icon">${r.icon}</span>
+      <div class="search-result-text">
+        <div class="search-result-title" style="color:${r.color}">${escapeHtml(r.title)}</div>
+        <div class="search-result-meta">${escapeHtml(r.catLabel)} · ${escapeHtml(r.subcatLabel)}</div>
+        <div class="search-result-match">${escapeHtml(r.matchLabel)}: <b>${escapeHtml(String(r.matchValue))}</b></div>
+      </div>
+    `;
+    item.addEventListener('click', () => {
+      activeCategoryId = r.catId;
+      const cat = CONFIG.categories.find(c => c.id === r.catId);
+      activeSubcatByCategory[r.catId] = r.subcatLabel;
+      searchInput.value = '';
+      searchClearBtn.style.display = 'none';
+      exitSearch();
+      renderTabs();
+      renderFolderBody();
+    });
+    searchResultsEl.appendChild(item);
+  });
+}
+
+function renderTabs(){
+  const tabsEl = document.getElementById('tabs');
+  tabsEl.innerHTML = '';
+  CONFIG.categories.forEach(cat => {
+    const tab = document.createElement('div');
+    tab.className = 'tab' + (cat.id === activeCategoryId ? ' active' : '');
+    tab.style.background = cat.color;
+    tab.innerHTML = `<span class="tab-icon">${cat.icon}</span><span class="tab-label">${cat.label}</span>`;
+    tab.addEventListener('click', () => {
+      activeCategoryId = cat.id;
+      renderTabs();
+      renderFolderBody();
+    });
+    tabsEl.appendChild(tab);
+  });
+}
+
+function currentCategory(){
+  return CONFIG.categories.find(c => c.id === activeCategoryId);
+}
+
+function docId(cat, subcat){
+  return `${cat.id}__${sanitizeKey(subcat)}`;
+}
+
+function sanitizeKey(s){
+  return s.toString().trim().replace(/[^a-zA-Z0-9äöüÄÖÜß_-]/g, '_');
+}
+
+async function loadEntry(cat, subcat){
+  const ref_ = doc(db, 'tresor_data', docId(cat, subcat));
+  const snap = await getDoc(ref_);
+  if (snap.exists()) return snap.data();
+  return { textFields: {}, fileGroups: {}, customGroups: [] };
+}
+
+async function saveEntry(cat, subcat, data){
+  const ref_ = doc(db, 'tresor_data', docId(cat, subcat));
+  await setDoc(ref_, data, { merge: true });
+}
+
+async function renderGroupedFolderBody(cat, body){
+  const activeGroupId = activeGroupByCategory[cat.id];
+  const group = cat.groups.find(g => g.id === activeGroupId) || cat.groups[0];
+
+  const wrap = document.createElement('div');
+  wrap.className = 'ui';
+
+  // Gruppen-Pills (z. B. "SIM Karten" / "Internet Heim")
+  const groupsEl = document.createElement('div');
+  groupsEl.className = 'subcats';
+  cat.groups.forEach(g => {
+    const pill = document.createElement('div');
+    pill.className = 'subcat-pill' + (g.id === group.id ? ' active' : '');
+    pill.textContent = g.label;
+    if (g.id === group.id) pill.style.background = accentColor(cat);
+    pill.addEventListener('click', () => {
+      activeGroupByCategory[cat.id] = g.id;
+      activeGroupSubcatByCategory[cat.id] = g.subcategories ? g.subcategories[0] : null;
+      renderFolderBody();
+    });
+    groupsEl.appendChild(pill);
+  });
+  wrap.appendChild(groupsEl);
+
+  // Unterbereich-Pills, falls vorhanden (z. B. "Inland" / "Ausland")
+  let effectiveSubcat = group.label;
+  if (group.subcategories){
+    const activeSub = activeGroupSubcatByCategory[cat.id] || group.subcategories[0];
+    const subEl = document.createElement('div');
+    subEl.className = 'subcats';
+    group.subcategories.forEach(sc => {
+      const pill = document.createElement('div');
+      pill.className = 'subcat-pill' + (sc === activeSub ? ' active' : '');
+      pill.textContent = sc;
+      if (sc === activeSub) pill.style.background = accentColor(cat);
+      pill.addEventListener('click', () => {
+        activeGroupSubcatByCategory[cat.id] = sc;
+        renderFolderBody();
+      });
+      subEl.appendChild(pill);
+    });
+    wrap.appendChild(subEl);
+    effectiveSubcat = `${group.label}__${activeSub}`;
+  }
+
+  const effectiveCat = { ...cat, fields: group.fields };
+  const entry = await loadEntry(effectiveCat, effectiveSubcat);
+
+  wrap.appendChild(renderDocEntries(effectiveCat, effectiveSubcat, entry[effectiveCat.storageKey] || []));
+  if (group.fields.some(f => f.key === 'ablaufdatum')){
+    const expiring = await getExpiringForGroup(effectiveCat, cat, group);
+    wrap.appendChild(renderExpiringSection(expiring));
+  }
+
+  body.innerHTML = '';
+  body.appendChild(wrap);
+}
+
+async function getExpiringForGroup(effectiveCat, cat, group){
+  const now = new Date();
+  const in2Months = new Date(); in2Months.setMonth(in2Months.getMonth() + 2);
+  const in6Months = new Date(); in6Months.setMonth(in6Months.getMonth() + 6);
+  const subs = group.subcategories ? group.subcategories.map(s => `${group.label}__${s}`) : [group.label];
+
+  const results = [];
+  for (const sc of subs){
+    const entry = await loadEntry(effectiveCat, sc);
+    const list = entry[effectiveCat.storageKey] || [];
+    list.forEach(d => {
+      const parsed = parseFlexibleDate(d.ablaufdatum);
+      if (parsed && parsed >= now && parsed <= in6Months){
+        results.push({ name: d.name, subcat: sc.replace('__', ' · '), rawDate: d.ablaufdatum, date: parsed, urgent: parsed <= in2Months });
+      }
+    });
+  }
+  results.sort((a, b) => a.date - b.date);
+  return results;
+}
+
+async function renderFolderBody(){
+  const cat = currentCategory();
+  const body = document.getElementById('folderBody');
+  body.style.setProperty('--accent', cat.color.startsWith('var') ? getComputedStyle(document.documentElement).getPropertyValue(cat.color.slice(4,-1)) : cat.color);
+  body.innerHTML = `<div class="ui" id="bodyInner">Lädt…</div>`;
+
+  if (cat.groups){
+    await renderGroupedFolderBody(cat, body);
+    return;
+  }
+
+  const subcat = activeSubcatByCategory[cat.id];
+  const entry = await loadEntry(cat, subcat);
+
+  const wrap = document.createElement('div');
+  wrap.className = 'ui';
+
+  // subcategory pills
+  const subcatsEl = document.createElement('div');
+  subcatsEl.className = 'subcats';
+  cat.subcategories.forEach(sc => {
+    const pill = document.createElement('div');
+    pill.className = 'subcat-pill' + (sc === subcat ? ' active' : '');
+    pill.textContent = sc;
+    if (sc === subcat) pill.style.background = accentColor(cat);
+    pill.addEventListener('click', () => {
+      activeSubcatByCategory[cat.id] = sc;
+      renderFolderBody();
+    });
+    subcatsEl.appendChild(pill);
+  });
+  wrap.appendChild(subcatsEl);
+
+  if (cat.type === "docEntries"){
+    wrap.appendChild(renderDocEntries(cat, subcat, entry[cat.storageKey] || []));
+    if (cat.fields.some(f => f.key === 'ablaufdatum')){
+      const expiring = await getExpiringForCategory(cat);
+      wrap.appendChild(renderExpiringSection(expiring));
+    }
+    body.innerHTML = '';
+    body.appendChild(wrap);
+    return;
+  }
+
+  // file groups
+  wrap.appendChild(sectionTitle('Dokumente'));
+  const groupsEl = document.createElement('div');
+  groupsEl.className = 'filegroups';
+
+  const allGroups = [...cat.fileGroups, ...(entry.customGroups || [])];
+  allGroups.forEach(groupName => {
+    groupsEl.appendChild(renderFileGroup(cat, subcat, groupName, entry.fileGroups?.[sanitizeKey(groupName)] || []));
+  });
+  wrap.appendChild(groupsEl);
+
+  if (cat.allowCustomGroups){
+    const addBtn = document.createElement('button');
+    addBtn.className = 'add-custom-group';
+    addBtn.textContent = '+ weiteres Dokument hinzufügen';
+    addBtn.addEventListener('click', async () => {
+      const name = prompt('Name des neuen Dokuments (z. B. "Scheidungsurteil"):');
+      if (!name) return;
+      const updated = entry.customGroups ? [...entry.customGroups, name] : [name];
+      await saveEntry(cat, subcat, { customGroups: updated });
+      renderFolderBody();
+    });
+    wrap.appendChild(addBtn);
+  }
+
+  // text fields
+  if (cat.textFields.length){
+    wrap.appendChild(sectionTitle('Angaben'));
+    const tfWrap = document.createElement('div');
+    tfWrap.className = 'textfields';
+    cat.textFields.forEach(f => {
+      tfWrap.appendChild(renderTextField(cat, subcat, f, entry.textFields?.[f.key] || ''));
+    });
+    wrap.appendChild(tfWrap);
+  }
+
+  body.innerHTML = '';
+  body.appendChild(wrap);
+}
+
+function accentColor(cat){
+  if (cat.color.startsWith('var(')){
+    return getComputedStyle(document.documentElement).getPropertyValue(cat.color.slice(4,-1)).trim();
+  }
+  return cat.color;
+}
+
+function sectionTitle(text){
+  const t = document.createElement('div');
+  t.className = 'section-title';
+  t.textContent = text;
+  return t;
+}
+
+async function moveEntry(cat, subcat, id, direction){
+  const entry = await loadEntry(cat, subcat);
+  const list = entry[cat.storageKey] || [];
+  const idx = list.findIndex(d => d.id === id);
+  if (idx === -1) return;
+  const swapIdx = idx + direction;
+  if (swapIdx < 0 || swapIdx >= list.length) return;
+  [list[idx], list[swapIdx]] = [list[swapIdx], list[idx]];
+  await saveEntry(cat, subcat, { [cat.storageKey]: list });
+  renderFolderBody();
+}
+
+function parseFlexibleDate(str){
+  if (!str) return null;
+  const s = str.toString().trim();
+  if (!s) return null;
+
+  if (s.includes('/')){
+    const parts = s.split('/').map(p => p.trim()).filter(p => p.length);
+    if (parts.length === 2){
+      const mm = parseInt(parts[0], 10);
+      let yy = parseInt(parts[1], 10);
+      if (isNaN(mm) || isNaN(yy) || mm < 1 || mm > 12) return null;
+      const year = yy < 100 ? 2000 + yy : yy;
+      return new Date(year, mm, 0); // letzter Tag des Monats
+    }
+    if (parts.length === 3){
+      const dd = parseInt(parts[0], 10);
+      const mm = parseInt(parts[1], 10);
+      let yy = parseInt(parts[2], 10);
+      if (isNaN(dd) || isNaN(mm) || isNaN(yy) || mm < 1 || mm > 12) return null;
+      const year = yy < 100 ? 2000 + yy : yy;
+      return new Date(year, mm - 1, dd);
+    }
+    return null;
+  }
+
+  if (s.includes('.')){
+    const parts = s.split('.').map(p => p.trim()).filter(p => p.length);
+    if (parts.length === 3){
+      const dd = parseInt(parts[0], 10);
+      const mm = parseInt(parts[1], 10);
+      let yy = parseInt(parts[2], 10);
+      if (isNaN(dd) || isNaN(mm) || isNaN(yy) || mm < 1 || mm > 12) return null;
+      const year = yy < 100 ? 2000 + yy : yy;
+      return new Date(year, mm - 1, dd);
+    }
+    if (parts.length === 2){
+      const mm = parseInt(parts[0], 10);
+      let yy = parseInt(parts[1], 10);
+      if (isNaN(mm) || isNaN(yy) || mm < 1 || mm > 12) return null;
+      const year = yy < 100 ? 2000 + yy : yy;
+      return new Date(year, mm, 0);
+    }
+    return null;
+  }
+
+  return null;
+}
+
+async function getExpiringForCategory(cat){
+  if (!cat.fields || !cat.fields.some(f => f.key === 'ablaufdatum')) return [];
+  const now = new Date();
+  const in2Months = new Date(); in2Months.setMonth(in2Months.getMonth() + 2);
+  const in6Months = new Date(); in6Months.setMonth(in6Months.getMonth() + 6);
+
+  const results = [];
+  for (const sc of cat.subcategories){
+    const entry = await loadEntry(cat, sc);
+    const list = entry[cat.storageKey] || [];
+    list.forEach(d => {
+      const parsed = parseFlexibleDate(d.ablaufdatum);
+      if (parsed && parsed >= now && parsed <= in6Months){
+        results.push({ name: d.name, subcat: sc, rawDate: d.ablaufdatum, date: parsed, urgent: parsed <= in2Months });
+      }
+    });
+  }
+  results.sort((a, b) => a.date - b.date);
+  return results;
+}
+
+function renderExpiringSection(expiring){
+  const box = document.createElement('div');
+  if (!expiring.length) return box;
+  box.className = 'expiring-section';
+
+  const title = document.createElement('div');
+  title.className = 'expiring-title';
+  title.textContent = '⚠️ Läuft bald ab';
+  box.appendChild(title);
+
+  expiring.forEach(item => {
+    const row = document.createElement('div');
+    row.className = 'expiring-item' + (item.urgent ? ' urgent' : '');
+    row.innerHTML = `<span>${escapeHtml(item.name)}</span><span class="expiring-meta">${escapeHtml(item.subcat)} · ${escapeHtml(item.rawDate)}</span>`;
+    box.appendChild(row);
+  });
+
+  return box;
+}
+
+function uid(){
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+}
+
+function renderDocEntries(cat, subcat, docs){
+  const wrap = document.createElement('div');
+  wrap.className = 'ui';
+  wrap.style.setProperty('--accent', accentColor(cat));
+
+  const grid = document.createElement('div');
+  grid.className = 'iddoc-grid';
+  docs.forEach((d, idx) => grid.appendChild(renderDocEntryCard(cat, subcat, d, idx, docs.length)));
+  wrap.appendChild(grid);
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'add-custom-group';
+  addBtn.textContent = cat.addLabel;
+
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.pdf,.jpg,.jpeg,.png';
+  fileInput.style.display = 'none';
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const suggested = file.name.replace(/\.[^/.]+$/, '');
+    const displayName = prompt(cat.promptLabel, suggested);
+    if (displayName === null) return;
+    addBtn.textContent = 'Lädt hoch…';
+    addBtn.disabled = true;
+    try {
+      const path = `tresor/${cat.id}/${sanitizeKey(subcat)}/${Date.now()}_${sanitizeKey(file.name)}`;
+      const storageRef = ref(storage, path);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      const entry = await loadEntry(cat, subcat);
+      const list = entry[cat.storageKey] || [];
+      let newEntry;
+      if (cat.multiFile){
+        const suggestedFileName = file.name.replace(/\.[^/.]+$/, '');
+        const fileDisplayName = prompt('Name für diese Datei:', suggestedFileName);
+        newEntry = { id: uid(), name: displayName || file.name, files: [{ name: (fileDisplayName || file.name).trim() || file.name, url, path }] };
+      } else {
+        newEntry = { id: uid(), name: displayName || file.name, url, path };
+      }
+      cat.fields.forEach(f => { newEntry[f.key] = ''; });
+      list.push(newEntry);
+      await saveEntry(cat, subcat, { [cat.storageKey]: list });
+      expandedEntryIds.add(newEntry.id);
+      showToast('Hochgeladen');
+      renderFolderBody();
+    } catch(e){
+      console.error(e);
+      alert('Upload fehlgeschlagen: ' + e.message);
+      addBtn.textContent = cat.addLabel;
+      addBtn.disabled = false;
+    }
+  });
+
+  addBtn.addEventListener('click', () => fileInput.click());
+  wrap.appendChild(fileInput);
+  wrap.appendChild(addBtn);
+
+  return wrap;
+}
+
+const expandedEntryIds = new Set();
+
+function renderDocEntryCard(cat, subcat, docEntry, idx, total){
+  const card = document.createElement('div');
+  card.className = 'iddoc-card';
+  card.style.setProperty('--accent', accentColor(cat));
+
+  const isExpanded = expandedEntryIds.has(docEntry.id);
+
+  const header = document.createElement('div');
+  header.className = 'iddoc-card-header';
+
+  const topRow = document.createElement('div');
+  topRow.className = 'iddoc-card-toprow';
+
+  const icon = document.createElement('span');
+  icon.className = 'iddoc-card-icon';
+  icon.textContent = '📎';
+  topRow.appendChild(icon);
+
+  const titleEl = document.createElement('span');
+  titleEl.className = 'iddoc-card-title';
+  titleEl.textContent = cat.multiFile ? `${docEntry.name} (${(docEntry.files || []).length})` : docEntry.name;
+  titleEl.style.color = accentColor(cat);
+  topRow.appendChild(titleEl);
+
+  const delBtn = document.createElement('button');
+  delBtn.className = 'iddoc-del-btn';
+  delBtn.textContent = '✕';
+  delBtn.title = 'Löschen';
+  delBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    if (!confirm(`"${docEntry.name}" wirklich löschen?`)) return;
+    if (cat.multiFile){
+      for (const f of (docEntry.files || [])){
+        try { await deleteObject(ref(storage, f.path)); } catch(err){ console.warn(err); }
+      }
+    } else {
+      try { await deleteObject(ref(storage, docEntry.path)); } catch(err){ console.warn(err); }
+    }
+    const entry = await loadEntry(cat, subcat);
+    const list = (entry[cat.storageKey] || []).filter(d => d.id !== docEntry.id);
+    await saveEntry(cat, subcat, { [cat.storageKey]: list });
+    renderFolderBody();
+    showToast('Gelöscht');
+  });
+  topRow.appendChild(delBtn);
+
+  const chev = document.createElement('span');
+  chev.className = 'iddoc-chev';
+  chev.textContent = isExpanded ? '▲' : '▼';
+  topRow.appendChild(chev);
+
+  header.appendChild(topRow);
+
+  const bottomRow = document.createElement('div');
+  bottomRow.className = 'iddoc-card-bottomrow';
+
+  const moveUpBtn = document.createElement('button');
+  moveUpBtn.className = 'iddoc-move-btn';
+  moveUpBtn.textContent = '↑';
+  moveUpBtn.title = 'Nach oben verschieben';
+  moveUpBtn.disabled = idx === 0;
+  moveUpBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    moveEntry(cat, subcat, docEntry.id, -1);
+  });
+  bottomRow.appendChild(moveUpBtn);
+
+  const moveDownBtn = document.createElement('button');
+  moveDownBtn.className = 'iddoc-move-btn';
+  moveDownBtn.textContent = '↓';
+  moveDownBtn.title = 'Nach unten verschieben';
+  moveDownBtn.disabled = idx === total - 1;
+  moveDownBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    moveEntry(cat, subcat, docEntry.id, 1);
+  });
+  bottomRow.appendChild(moveDownBtn);
+
+  if (!cat.multiFile){
+    const photoBtn = document.createElement('a');
+    photoBtn.href = docEntry.url;
+    photoBtn.target = '_blank';
+    photoBtn.rel = 'noopener';
+    photoBtn.className = 'iddoc-photo-btn';
+    photoBtn.textContent = '🖼️ Foto';
+    photoBtn.addEventListener('click', (e) => e.stopPropagation());
+    bottomRow.appendChild(photoBtn);
+  }
+
+  const editBtn = document.createElement('button');
+  editBtn.className = 'iddoc-edit-btn';
+  editBtn.textContent = '✎';
+  editBtn.title = 'Umbenennen';
+  editBtn.addEventListener('click', async (e) => {
+    e.stopPropagation();
+    const newName = prompt('Neuer Name:', docEntry.name);
+    if (newName === null || !newName.trim()) return;
+    const entry = await loadEntry(cat, subcat);
+    const list = entry[cat.storageKey] || [];
+    const idx2 = list.findIndex(d => d.id === docEntry.id);
+    if (idx2 > -1){
+      list[idx2] = { ...list[idx2], name: newName.trim() };
+      await saveEntry(cat, subcat, { [cat.storageKey]: list });
+      renderFolderBody();
+      showToast('Umbenannt');
+    }
+  });
+  bottomRow.appendChild(editBtn);
+  header.appendChild(bottomRow);
+
+  header.addEventListener('click', () => {
+    if (expandedEntryIds.has(docEntry.id)) expandedEntryIds.delete(docEntry.id);
+    else expandedEntryIds.add(docEntry.id);
+    renderFolderBody();
+  });
+
+  card.appendChild(header);
+  card.dataset.entryId = docEntry.id;
+
+  if (isExpanded){
+    const fieldsWrap = document.createElement('div');
+    fieldsWrap.className = 'iddoc-fields';
+    if (cat.multiFile){
+      fieldsWrap.appendChild(renderMultiFilesSection(cat, subcat, docEntry));
+    }
+    cat.fields.forEach(f => {
+      fieldsWrap.appendChild(renderDocEntryField(cat, subcat, docEntry, f.key, f.label));
+    });
+    card.appendChild(fieldsWrap);
+  }
+
+  return card;
+}
+
+function renderMultiFilesSection(cat, subcat, docEntry){
+  const box = document.createElement('div');
+  box.className = 'multifile-box';
+
+  (docEntry.files || []).forEach(f => {
+    const chip = document.createElement('div');
+    chip.className = 'file-chip';
+    chip.innerHTML = `<a href="${f.url}" target="_blank" rel="noopener">📎 ${escapeHtml(f.name)}</a>`;
+
+    const renameBtn = document.createElement('button');
+    renameBtn.textContent = '✎';
+    renameBtn.title = 'Diese Datei umbenennen';
+    renameBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      const newFileName = prompt('Neuer Name für diese Datei:', f.name);
+      if (newFileName === null || !newFileName.trim()) return;
+      const entry = await loadEntry(cat, subcat);
+      const list = entry[cat.storageKey] || [];
+      const idx = list.findIndex(d => d.id === docEntry.id);
+      if (idx > -1){
+        const files = (list[idx].files || []).map(x => x.path === f.path ? { ...x, name: newFileName.trim() } : x);
+        list[idx] = { ...list[idx], files };
+        await saveEntry(cat, subcat, { [cat.storageKey]: list });
+        renderFolderBody();
+        showToast('Umbenannt');
+      }
+    });
+    chip.appendChild(renameBtn);
+
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '✕';
+    delBtn.title = 'Diese Datei löschen';
+    delBtn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      if (!confirm(`"${f.name}" wirklich löschen?`)) return;
+      try { await deleteObject(ref(storage, f.path)); } catch(err){ console.warn(err); }
+      const entry = await loadEntry(cat, subcat);
+      const list = entry[cat.storageKey] || [];
+      const idx = list.findIndex(d => d.id === docEntry.id);
+      if (idx > -1){
+        list[idx] = { ...list[idx], files: (list[idx].files || []).filter(x => x.path !== f.path) };
+        await saveEntry(cat, subcat, { [cat.storageKey]: list });
+        renderFolderBody();
+        showToast('Datei gelöscht');
+      }
+    });
+    chip.appendChild(delBtn);
+    box.appendChild(chip);
+  });
+
+  const addFileBtn = document.createElement('button');
+  addFileBtn.className = 'addfile-btn';
+  addFileBtn.textContent = '+ weitere Datei hinzufügen';
+  addFileBtn.type = 'button';
+
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.pdf,.jpg,.jpeg,.png';
+  fileInput.style.display = 'none';
+
+  fileInput.addEventListener('change', async (e) => {
+    e.stopPropagation();
+    const file = fileInput.files[0];
+    if (!file) return;
+    const suggested = file.name.replace(/\.[^/.]+$/, '');
+    const fileDisplayName = prompt('Name für diese Datei:', suggested);
+    if (fileDisplayName === null) return;
+    addFileBtn.textContent = 'Lädt hoch…';
+    addFileBtn.disabled = true;
+    try {
+      const path = `tresor/${cat.id}/${sanitizeKey(subcat)}/${Date.now()}_${sanitizeKey(file.name)}`;
+      const storageRef = ref(storage, path);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      const entry = await loadEntry(cat, subcat);
+      const list = entry[cat.storageKey] || [];
+      const idx = list.findIndex(d => d.id === docEntry.id);
+      if (idx > -1){
+        const files = list[idx].files || [];
+        files.push({ name: (fileDisplayName || file.name).trim() || file.name, url, path });
+        list[idx] = { ...list[idx], files };
+        await saveEntry(cat, subcat, { [cat.storageKey]: list });
+        showToast('Datei hinzugefügt');
+        renderFolderBody();
+      }
+    } catch(err){
+      console.error(err);
+      alert('Upload fehlgeschlagen: ' + err.message);
+      addFileBtn.textContent = '+ weitere Datei hinzufügen';
+      addFileBtn.disabled = false;
+    }
+  });
+
+  addFileBtn.addEventListener('click', (e) => { e.stopPropagation(); fileInput.click(); });
+  box.appendChild(fileInput);
+  box.appendChild(addFileBtn);
+
+  return box;
+}
+
+function renderDocEntryField(cat, subcat, docEntry, key, label){
+  const wrap = document.createElement('div');
+  wrap.className = 'tf';
+  const labelEl = document.createElement('label');
+  labelEl.textContent = label;
+
+  const isNote = key === 'notiz';
+
+  const inputRow = document.createElement('div');
+  inputRow.className = 'tf-copy-row' + (isNote ? ' tf-copy-row-note' : '');
+
+  const input = document.createElement(isNote ? 'textarea' : 'input');
+  if (!isNote) input.type = 'text';
+  else input.rows = 3;
+  input.value = docEntry[key] || '';
+  input.style.color = accentColor(cat);
+
+  const copyBtn = document.createElement('button');
+  copyBtn.type = 'button';
+  copyBtn.className = 'copy-btn';
+  copyBtn.title = 'Kopieren';
+  copyBtn.textContent = '⧉';
+  copyBtn.addEventListener('click', async () => {
+    if (!input.value) return;
+    try {
+      await navigator.clipboard.writeText(input.value);
+      showToast('Kopiert');
+    } catch(e){
+      input.select();
+      document.execCommand('copy');
+      showToast('Kopiert');
+    }
+  });
+
+  inputRow.appendChild(input);
+  inputRow.appendChild(copyBtn);
+
+  const hint = document.createElement('div');
+  hint.className = 'saved-hint';
+  hint.textContent = 'Gespeichert ✓';
+
+  let debounce;
+  input.addEventListener('input', () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(async () => {
+      const entry = await loadEntry(cat, subcat);
+      const list = entry[cat.storageKey] || [];
+      const idx = list.findIndex(d => d.id === docEntry.id);
+      if (idx > -1){
+        list[idx] = { ...list[idx], [key]: input.value };
+        await saveEntry(cat, subcat, { [cat.storageKey]: list });
+        hint.classList.add('show');
+        setTimeout(() => hint.classList.remove('show'), 1200);
+      }
+    }, 600);
+  });
+
+  wrap.appendChild(labelEl);
+  wrap.appendChild(inputRow);
+  wrap.appendChild(hint);
+  return wrap;
+}
+
+function renderFileGroup(cat, subcat, groupName, files){
+  const box = document.createElement('div');
+  box.className = 'filegroup';
+  box.style.setProperty('--accent', accentColor(cat));
+
+  const h4 = document.createElement('h4');
+  h4.textContent = groupName;
+  box.appendChild(h4);
+
+  files.forEach((f, idx) => {
+    const chip = document.createElement('div');
+    chip.className = 'file-chip';
+    chip.innerHTML = `<a href="${f.url}" target="_blank" rel="noopener">📎 ${escapeHtml(f.name)}</a>`;
+    const delBtn = document.createElement('button');
+    delBtn.textContent = '✕';
+    delBtn.title = 'Löschen';
+    delBtn.addEventListener('click', async () => {
+      if (!confirm(`"${f.name}" wirklich löschen?`)) return;
+      try { await deleteObject(ref(storage, f.path)); } catch(e){ console.warn(e); }
+      const entry = await loadEntry(cat, subcat);
+      const key = sanitizeKey(groupName);
+      const list = entry.fileGroups?.[key] || [];
+      list.splice(idx, 1);
+      await saveEntry(cat, subcat, { fileGroups: { ...entry.fileGroups, [key]: list } });
+      renderFolderBody();
+      showToast('Datei gelöscht');
+    });
+    chip.appendChild(delBtn);
+    box.appendChild(chip);
+  });
+
+  const addBtn = document.createElement('button');
+  addBtn.className = 'addfile-btn';
+  addBtn.textContent = '+ Datei hochladen (PDF/JPG)';
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.pdf,.jpg,.jpeg,.png';
+  fileInput.style.display = 'none';
+
+  fileInput.addEventListener('change', async () => {
+    const file = fileInput.files[0];
+    if (!file) return;
+    const suggested = file.name.replace(/\.[^/.]+$/, '');
+    const displayName = prompt('Anzeigename für diese Datei:', suggested);
+    if (displayName === null) return;
+    addBtn.textContent = 'Lädt hoch…';
+    addBtn.disabled = true;
+    try {
+      const path = `tresor/${cat.id}/${sanitizeKey(subcat)}/${sanitizeKey(groupName)}/${Date.now()}_${sanitizeKey(file.name)}`;
+      const storageRef = ref(storage, path);
+      await uploadBytes(storageRef, file);
+      const url = await getDownloadURL(storageRef);
+      const entry = await loadEntry(cat, subcat);
+      const key = sanitizeKey(groupName);
+      const list = entry.fileGroups?.[key] || [];
+      list.push({ name: displayName || file.name, url, path });
+      await saveEntry(cat, subcat, { fileGroups: { ...entry.fileGroups, [key]: list } });
+      showToast('Datei hochgeladen');
+      renderFolderBody();
+    } catch(e){
+      console.error(e);
+      alert('Upload fehlgeschlagen: ' + e.message);
+      addBtn.textContent = '+ Datei hochladen (PDF/JPG)';
+      addBtn.disabled = false;
+    }
+  });
+
+  addBtn.addEventListener('click', () => fileInput.click());
+  box.appendChild(fileInput);
+  box.appendChild(addBtn);
+
+  return box;
+}
+
+function renderTextField(cat, subcat, field, value){
+  const wrap = document.createElement('div');
+  wrap.className = 'tf';
+  const label = document.createElement('label');
+  label.textContent = field.label;
+  const input = document.createElement('input');
+  input.type = 'text';
+  input.value = value;
+  input.style.color = accentColor(cat);
+  input.style.setProperty('--accent', accentColor(cat));
+  const hint = document.createElement('div');
+  hint.className = 'saved-hint';
+  hint.textContent = 'Gespeichert ✓';
+
+  let debounce;
+  input.addEventListener('input', () => {
+    clearTimeout(debounce);
+    debounce = setTimeout(async () => {
+      const entry = await loadEntry(cat, subcat);
+      await saveEntry(cat, subcat, { textFields: { ...entry.textFields, [field.key]: input.value } });
+      hint.classList.add('show');
+      setTimeout(() => hint.classList.remove('show'), 1200);
+    }, 600);
+  });
+
+  wrap.appendChild(label);
+  wrap.appendChild(input);
+  wrap.appendChild(hint);
+  return wrap;
+}
+
+function escapeHtml(s){
+  const d = document.createElement('div');
+  d.textContent = s;
+  return d.innerHTML;
+}
+
+let toastTimer;
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 1800);
+}
+</script>
+</body>
+</html>
